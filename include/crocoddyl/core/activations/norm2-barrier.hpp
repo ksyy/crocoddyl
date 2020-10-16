@@ -17,6 +17,19 @@
 
 namespace crocoddyl {
 
+/**
+ * @brief Define a norm2 activation model, with a barrier.
+ *
+ * This model activates quadratically if the norm2 of the residual vector **r**
+ * is inferior to a tunable **threshold**.
+ *
+ * \f$a(r)=
+ * \begin{cases}
+ *      0.5*\left (\left \| r \right \|_2 - threshold  \right )^2,& \text{if } r \lt threshold \\
+ *      0                                                        ,& \text{otherwise}
+ * \end{cases}
+ * \f$
+ */
 template <typename _Scalar>
 class ActivationModelNorm2BarrierTpl : public ActivationModelAbstractTpl<_Scalar> {
  public:
@@ -31,7 +44,11 @@ class ActivationModelNorm2BarrierTpl : public ActivationModelAbstractTpl<_Scalar
   typedef typename MathBase::MatrixXs MatrixXs;
   typedef typename MathBase::DiagonalMatrixXs DiagonalMatrixXs;
 
-  // TODO: Magic number, check with Teguh/Nicolas/Crocoddyl Team 
+  /** Initialise the activation model
+   *
+   * \param nr Dimension of the residual vector
+   * \param threshold Activation threshold value
+   */
   explicit ActivationModelNorm2BarrierTpl(const std::size_t nr, const Scalar& threshold ) : 
     Base(nr), threshold_(threshold) {};
   virtual ~ActivationModelNorm2BarrierTpl(){};
@@ -45,7 +62,7 @@ class ActivationModelNorm2BarrierTpl : public ActivationModelAbstractTpl<_Scalar
 
     d->distance_ = r.norm();
     if(d->distance_ < threshold_) {
-      data->a_value = Scalar(0.5) * (d->distance_ - threshold_) * (d->distance_ - threshold_);
+      data->a_value = Scalar(0.5) * std::pow(d->distance_ - threshold_, 2);
     }
     else {
       data->a_value = Scalar(0.0);
@@ -63,7 +80,6 @@ class ActivationModelNorm2BarrierTpl : public ActivationModelAbstractTpl<_Scalar
       data->Ar = (d->distance_ - threshold_) / d->distance_ * r;
       data->Arr.diagonal() = threshold_ * r.array().square() / std::pow(d->distance_, 3);
       data->Arr.diagonal().array() += (d->distance_ - threshold_) / d->distance_;
-      //data->Arr.diagonal() = (MatrixXs::Identity(nr_, nr_) * (d->distance_ - threshold_) / d->distance_ + threshold_ * r * r.transpose() / std::pow(d->distance_, 3)).diagonal();
     }
     else {
       data->Ar.setZero();

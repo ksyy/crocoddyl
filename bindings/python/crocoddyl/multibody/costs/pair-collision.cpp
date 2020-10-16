@@ -21,7 +21,8 @@ void exposeCostPairCollisions() {
       "CostModelPairCollisions",
       bp::init<boost::shared_ptr<StateMultibody>, boost::shared_ptr<ActivationModelAbstract>, int, boost::shared_ptr<pinocchio::GeometryModel> , pinocchio::PairIndex, pinocchio::JointIndex>(
                                                                                                                                                                                               bp::args("self", "state", "activation", "nu", "geom_model","pair_id","joint_id"),
-          "Initialize the frame placement cost model.\n\n"
+          "Uses HPP-FCL, via Pinocchio, to compute the distance between a robot link and an"
+          "environment obstacle. Then computes the cost and its derivatives.\n\n"
           ":param state: state of the multibody system\n"
           ":param activation: activation model\n"
           ":param nu: dimension of control vector\n"
@@ -32,6 +33,7 @@ void exposeCostPairCollisions() {
                                              const Eigen::Ref<const Eigen::VectorXd>&,
                                              const Eigen::Ref<const Eigen::VectorXd>&)>(
           "calc", &CostModelPairCollisions::calc, bp::args("self", "data", "x", "u"),
+        
           "Compute the frame placement cost.\n\n"
           ":param data: cost data\n"
           ":param x: time-discrete state vector\n"

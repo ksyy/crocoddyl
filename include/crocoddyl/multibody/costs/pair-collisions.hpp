@@ -22,6 +22,32 @@
 
 namespace crocoddyl {
 
+/**
+ * Uses *HPP-FCL*, via *Pinocchio*, to compute the distance between a robot link and an
+ * environment obstacle.
+ *
+ * If the distance is above a threshold (see ActivationModelNorm2BarrierTpl), the cost and its derivatives are 0.
+ * Else, values for the cost and its derivatives are computed as follows:
+ *
+ * With \f$p\f$ the point on the robot's link nearest to the obstacle, and \f$p_{ref}\f$
+ * its counterpart on the obstacle.
+ *
+ * \f$cost = a \left( p - p_{ref} \right) = 0.5\left (\left \| r \right \|_2 - threshold  \right )^2\f$
+ *
+ * Noting \f$J_p\f$ the joint jacobian computed at \f$p\f$, and \f$J = J_p\left[ 1:3 ; ... \right]\f$
+ * the submatrix comprised of the 3 top rows.
+ *
+ * \f$R_x = \left(\begin{array}{@{}c|c@{}} J & 0 \end{array}\right)\f$
+ *
+ * \f$L_x = \left(\begin{array}{@{}c|c@{}} J^T A_r & 0 \end{array}\right)\f$
+ *
+ * \f$L_{xx} = \left(\begin{array}{@{}c|c@{}} 
+ * J A_{rr} J^T & 0 \\ 
+ * \hline 
+ * 0 & 0 \end{array}\right)\f$
+ *
+ * For more information about those calculations, see this <a href="cost-model-for-obstacle-avoidance.pdf">this report</a>.
+ */
 template <typename _Scalar>
 class CostModelPairCollisionsTpl : public CostModelAbstractTpl<_Scalar> {
  public:
@@ -42,20 +68,42 @@ class CostModelPairCollisionsTpl : public CostModelAbstractTpl<_Scalar> {
   typedef typename MathBase::VectorXs VectorXs;
   typedef typename MathBase::MatrixXs MatrixXs;
 
+  /** Initialise the collision cost model
+   *
+   * Note that it only works for *one* collision pair at the moment.
+   *
+   * \param state Multibody state
+   * \param activation Activation model (if Norm2Barrier is used, **nr** should be 3)
+   * \param nu Dimension of control
+   * \param geom_model Pinocchio geometric model
+   * \param pair_id Collision pair id in the geometric model
+   * \param joint_id Joint id in the Pinocchio model (used for Jacobian computation)
+   */
   CostModelPairCollisionsTpl(boost::shared_ptr<StateMultibody> state,
                              boost::shared_ptr<ActivationModelAbstract> activation,
                              const std::size_t& nu,
                              boost::shared_ptr<GeometryModel> geom_model,
-                             const pinocchio::PairIndex& pair_id, // const std::size_t col_id, // The id of the pair of colliding objects
-                             const pinocchio::JointIndex& joint_id); // Used to calculate the Jac at the joint
+                             const pinocchio::PairIndex& pair_id,
+                             const pinocchio::JointIndex& joint_id);
 
+  /** Initialise the collision cost model
+   *
+   * Note that it only works for *one* collision pair at the moment.
+   *
+   * \param state Multibody state
+   * \param threshold Distance threshold for this collision 
+   * \param nu Dimension of control
+   * \param geom_model Pinocchio geometric model
+   * \param pair_id Collision pair id in the geometric model
+   * \param joint_id Joint id in the Pinocchio model (used for Jacobian computation)
+   */
   CostModelPairCollisionsTpl(boost::shared_ptr<StateMultibody> state,
                              const Scalar& threshold,
                              const std::size_t& nu,
                              boost::shared_ptr<GeometryModel> geom_model,
-                             const pinocchio::PairIndex& pair_id, // const std::size_t col_id, // The id of the pair of colliding objects
-                             const pinocchio::JointIndex& joint_id); // Used to calculate the Jac at the joint
-  
+                             const pinocchio::PairIndex& pair_id,
+                             const pinocchio::JointIndex& joint_id);
+
   virtual ~CostModelPairCollisionsTpl();
 
   virtual void calc(const boost::shared_ptr<CostDataAbstract>& data, const Eigen::Ref<const VectorXs>& x,

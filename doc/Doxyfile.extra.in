@@ -320,6 +320,7 @@ FILE_PATTERNS          = *.cc *.cpp *.h *.hpp *.hh *.dox *.md *.py
 
 # Put them back for inclusion as whole files
 #HTML_EXTRA_FILES       += @CMAKE_SOURCE_DIR@/doc/d-practical-exercises/src
+HTML_EXTRA_FILES       += @CMAKE_SOURCE_DIR@/doc/reports/cost-model-for-obstacle-avoidance.pdf
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
