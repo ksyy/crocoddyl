@@ -53,10 +53,7 @@ void CostModelPairCollisionsTpl<Scalar>::calc(const boost::shared_ptr<CostDataAb
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> q = x.head(state_->get_nq());
   const pinocchio::ModelTpl<Scalar>& pin_model = *state_->get_pinocchio().get();
 
-  // This function calls forwardKinematics on the whole body
-  // and computes the distances for each and every pair
-  // We need to find a way to only recompute what is needed
-  pinocchio::computeDistances(pin_model, *d->pinocchio, *geom_model_.get(), d->geom_data, q);
+  pinocchio::computeDistance(*geom_model_.get(), d->geom_data, pair_id_);
 
   //calculate residual
   data->r = d->geom_data.distanceResults[pair_id_].nearest_points[0] -
@@ -68,7 +65,7 @@ void CostModelPairCollisionsTpl<Scalar>::calc(const boost::shared_ptr<CostDataAb
 
 template <typename Scalar>
 void CostModelPairCollisionsTpl<Scalar>::calcDiff(const boost::shared_ptr<CostDataAbstract>& data,
-                                               const Eigen::Ref<const VectorXs>& x, const Eigen::Ref<const VectorXs>& u) {
+                                               const Eigen::Ref<const VectorXs>& x, const Eigen::Ref<const VectorXs>&) {
 
   Data* d  = static_cast<Data*>(data.get());
 
