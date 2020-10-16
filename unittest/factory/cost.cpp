@@ -17,8 +17,10 @@
 #include "crocoddyl/multibody/costs/frame-velocity.hpp"
 #include "crocoddyl/multibody/costs/contact-friction-cone.hpp"
 #include "crocoddyl/multibody/costs/contact-wrench-cone.hpp"
+#include "crocoddyl/multibody/costs/pair-collisions.hpp"
 #include "crocoddyl/multibody/costs/cost-sum.hpp"
 #include "crocoddyl/core/utils/exception.hpp"
+#include <crocoddyl/core/fwd.hpp>
 
 namespace crocoddyl {
 namespace unittest {
@@ -51,6 +53,9 @@ std::ostream& operator<<(std::ostream& os, CostModelTypes::Type type) {
     case CostModelTypes::CostModelFrameVelocity:
       os << "CostModelFrameVelocity";
       break;
+    case CostModelTypes::CostModelPairCollisions:
+      os << "CostModelPairCollisions";
+      break;
     case CostModelTypes::NbCostModelTypes:
       os << "NbCostModelTypes";
       break;
@@ -62,6 +67,41 @@ std::ostream& operator<<(std::ostream& os, CostModelTypes::Type type) {
 
 CostModelFactory::CostModelFactory() {}
 CostModelFactory::~CostModelFactory() {}
+
+boost::shared_ptr<crocoddyl::CostModelPairCollisions> CostModelFactory::create_CostModelPairCollisions(
+      boost::shared_ptr<crocoddyl::StateMultibody> state, 
+      boost::shared_ptr<crocoddyl::ActivationModelAbstract> activation,
+      std::size_t nu) const
+{
+  const pinocchio::Model& pin_model = *(state->get_pinocchio().get()); 
+  boost::shared_ptr<pinocchio::GeometryModel> geom_model = boost::make_shared<pinocchio::GeometryModel>();
+
+  std::string link_name = pin_model.names[2]; // Depends on the model used, so why not 2?
+  pinocchio::FrameIndex pin_link_id = pin_model.getFrameId(link_name);
+  pinocchio::JointIndex pin_joint_id = pin_model.getJointId(link_name);
+  Eigen::Vector3d pos_body(-0.025,0,-.225);
+
+  pinocchio::GeomIndex ig_robot = geom_model->addGeometryObject(pinocchio::GeometryObject("simple_robot_limb", pin_link_id, pin_model.frames[pin_link_id].parent, boost::shared_ptr<hpp::fcl::Capsule>(new hpp::fcl::Capsule(0, 0.45)), pinocchio::SE3(Eigen::Matrix3d::Identity(),pos_body)),pin_model);
+
+
+  Eigen::Vector3d capsule_pose(-0.3,-0.1,0.75);
+  Eigen::Vector2d capsule_size(.3, .02);
+  
+  pinocchio::GeomIndex ig_obs = geom_model->addGeometryObject(
+    pinocchio::GeometryObject("simple_obs",
+                              pin_model.getFrameId("universe"),
+                              pin_model.frames[pin_model.getFrameId("universe")].parent,
+                              boost::shared_ptr<hpp::fcl::Capsule>(new hpp::fcl::Capsule(capsule_size(0), capsule_size(1))),
+                              pinocchio::SE3(Eigen::Matrix3d::Identity(), capsule_pose)),
+                              pin_model);
+  geom_model->addCollisionPair(pinocchio::CollisionPair(ig_robot, ig_obs));
+
+
+  return boost::make_shared<crocoddyl::CostModelPairCollisions>(
+           state, activation, nu, 
+           geom_model, 
+           0, pin_joint_id);
+}
 
 boost::shared_ptr<crocoddyl::CostModelAbstract> CostModelFactory::create(CostModelTypes::Type cost_type,
                                                                          StateModelTypes::Type state_type,
@@ -113,6 +153,9 @@ boost::shared_ptr<crocoddyl::CostModelAbstract> CostModelFactory::create(CostMod
       cost = boost::make_shared<crocoddyl::CostModelFrameVelocity>(
           state, activation_factory.create(activation_type, 6),
           crocoddyl::FrameMotion(frame_index, pinocchio::Motion::Random()), nu);
+      break;
+    case CostModelTypes::CostModelPairCollisions:
+      cost = create_CostModelPairCollisions(state, activation_factory.create(activation_type, 3), nu);
       break;
     default:
       throw_pretty(__FILE__ ": Wrong CostModelTypes::Type given");

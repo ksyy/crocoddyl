@@ -14,6 +14,7 @@
 #include "crocoddyl/multibody/cost-base.hpp"
 #include "crocoddyl/multibody/numdiff/cost.hpp"
 #include "crocoddyl/multibody/costs/cost-sum.hpp"
+#include <crocoddyl/core/fwd.hpp>
 
 namespace crocoddyl {
 namespace unittest {
@@ -28,6 +29,7 @@ struct CostModelTypes {
     CostModelFrameRotation,
     CostModelFrameTranslation,
     CostModelFrameVelocity,
+    CostModelPairCollisions,
     NbCostModelTypes
   };
   static std::vector<Type> init_all() {
@@ -52,6 +54,11 @@ class CostModelFactory {
 
   explicit CostModelFactory();
   ~CostModelFactory();
+
+  boost::shared_ptr<crocoddyl::CostModelPairCollisions> create_CostModelPairCollisions(
+      boost::shared_ptr<crocoddyl::StateMultibody> state, 
+      boost::shared_ptr<crocoddyl::ActivationModelAbstract> activation,
+      std::size_t nu) const;
 
   boost::shared_ptr<crocoddyl::CostModelAbstract> create(
       CostModelTypes::Type cost_type, StateModelTypes::Type state_type, ActivationModelTypes::Type activation_type,
